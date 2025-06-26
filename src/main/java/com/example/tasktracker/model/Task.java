@@ -12,6 +12,7 @@ public class Task {
     private String title;
     private String description;
     private boolean completed;
+    private String createdBy; // Optional: to track who created the task
 
     public Task() {}
 
@@ -32,4 +33,8 @@ public class Task {
 
     public boolean isCompleted() { return completed; }
     public void setCompleted(boolean completed) { this.completed = completed; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
 }
