@@ -1,11 +1,12 @@
 package com.example.tasktracker.security;
 
+import com.example.tasktracker.util.JwtUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -18,14 +19,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.security.Key;
 import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final Key jwtSecretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final JwtUtil jwtUtil;
+
+    public SecurityConfig(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     public class JwtFilter extends OncePerRequestFilter {
         @Override
@@ -36,13 +40,9 @@ public class SecurityConfig {
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.substring(7);
                 try {
-                    Claims claims = Jwts.parserBuilder()
-                            .setSigningKey(jwtSecretKey)
-                            .build()
-                            .parseClaimsJws(token)
-                            .getBody();
-
+                    Claims claims = jwtUtil.validateToken(token);
                     String username = claims.getSubject();
+
                     if (username != null) {
                         var auth = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
                         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -54,6 +54,12 @@ public class SecurityConfig {
                 }
             }
             filterChain.doFilter(request, response);
+        }
+
+        @Override
+        protected boolean shouldNotFilter(HttpServletRequest request) {
+            String path = request.getServletPath();
+            return path.startsWith("/api/auth/");
         }
     }
 

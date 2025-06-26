@@ -2,16 +2,12 @@ package com.example.tasktracker.controller.auth;
 
 import com.example.tasktracker.model.User;
 import com.example.tasktracker.repository.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
+import com.example.tasktracker.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Key;
-import java.util.Date;
 import java.util.Optional;
 
 @RestController
@@ -22,9 +18,10 @@ public class AuthController {
     @Autowired
     private UserRepository userRepo;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private final Key jwtSecretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    @Autowired
+    private JwtUtil jwtUtil;
 
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
@@ -50,15 +47,10 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
-        String jwt = Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(jwtSecretKey)
-                .compact();
-
+        String jwt = jwtUtil.generateToken(user.getUsername());
         return ResponseEntity.ok(jwt);
     }
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest request) {
         Optional<User> userOpt = userRepo.findByUsername(request.getUsername());
@@ -77,5 +69,4 @@ public class AuthController {
 
         return ResponseEntity.ok("Password updated successfully");
     }
-
 }
